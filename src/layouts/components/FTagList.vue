@@ -6,7 +6,7 @@ const { tabList, activeTab, changeTab, handleClose, removeTab } = useTabList()
 
 <template>
     <div class="f-tag-list" :style="{ left: $store.state.asideWidth }">
-        <el-tabs v-model="activeTab" @tab-click="handleClick" type="card" class="demo-tabs" @tab-remove="removeTab"
+        <el-tabs v-model="activeTab" type="card" class="demo-tabs" @tab-remove="removeTab"
             style="min-width:100px;" @tab-change="changeTab">
             <el-tab-pane :closable="item.path != '/'" v-for="item in tabList" :key="item.path" :label="item.title"
                 :name="item.path">

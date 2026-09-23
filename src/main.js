@@ -1,5 +1,3 @@
-
-
 import { createApp } from 'vue'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -20,4 +18,6 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 import 'virtual:windi.css'
 import './permission.js'
 import 'nprogress/nprogress.css'
+import permission from '~/diretives/permission.js'
+app.use(permission)
 app.mount('#app')

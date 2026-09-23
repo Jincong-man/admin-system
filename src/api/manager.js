@@ -18,3 +18,7 @@ export function logout() {
 export function updatePassword(data) {
   return axios.post('/admin/updatepassword', data)
 }
+//获取管理员列表
+export function getManagerList(page = 1, keyword = 'ceshi') {
+    return axios.get(`/admin/manager/${page}?limit=${10}&keyword=${keyword}`);
+}

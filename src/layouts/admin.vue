@@ -17,11 +17,9 @@ import FTagList from './components/FTagList.vue'
             <el-main>
                 <FTagList></FTagList>
                 <router-view v-slot="{ Component }">
-                    <transition name="fade" mode="out-in">
-                        <KeepAlive :max="10">
-                            <Component :is="Component"></Component>
-                        </KeepAlive>
-                    </transition>
+                    <KeepAlive :max="10">
+                        <Component :is="Component" :key="$route.path"></Component>
+                    </KeepAlive>
                 </router-view>
             </el-main>
 

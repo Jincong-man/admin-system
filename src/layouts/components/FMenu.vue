@@ -21,8 +21,8 @@ const isCollapse = computed(() => !(store.state.asideWidth == '250px'))
 
 <template>
     <div class="f-menu" :style="{ width: $store.state.asideWidth }">
-        <el-menu :default-active="defaultActive" unique-opened="true" :collapse="isCollapse" default-index-active="2" class="border-0"
-            @select="handleSelect" hide-timeout="0" show-timeout="0" :collapse-transition="false">
+        <el-menu :default-active="defaultActive" :unique-opened="true" :collapse="isCollapse" class="border-0"
+            @select="handleSelect" :hide-timeout="0" :show-timeout="0" :collapse-transition="false">
 
             <template v-for="(item, index) in asideMenus" :key="index"> <!-- 遍历菜单 -->
                 <!-- 二级菜单 -->

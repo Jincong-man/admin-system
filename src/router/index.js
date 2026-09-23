@@ -13,6 +13,7 @@ import ImageList from '~/pages/image/list.vue'
 import UserList from '~/pages/user/list.vue'
 import OrderList from '~/pages/order/list.vue'
 import CommentList from '~/pages/comment/list.vue'
+import ManagerList from '~/pages/manager/list.vue'
 
 
 
@@ -109,6 +110,13 @@ const asyncRoutes = [{
     meta: {
       title: '评价列表'
     }
+},{
+  path: '/manager/list',
+  name: '/manager/list',
+  component: ManagerList,
+  meta: {
+    title: '管理员管理'
+  }
 }]
 
 
