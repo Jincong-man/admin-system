@@ -1,49 +1,66 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { getNoticeList, createNotice, updateNotice, deleteNotice } from '~/api/notice'
+import { getManagerList, updateManagerStatus, deleteManager, updateManager, createManager } from '~/api/manager'
 import FormDrawer from '~/components/FormDrawer.vue'
+import ChooseImage from '~/components/ChooseImage.vue'
 import { toast } from '~/composables/util.js'
+const searchForm = ref({
+    keyword: ''
+})
+const reset = () => {
+    searchForm.value.keyword = ''
+    getData()
+}
 const tableData = ref([])
 
 const loading = ref(false)
 const currentPage = ref(1)
 const total = ref(0)
 const limit = ref(10)
+const roles = ref([])
 function getData(p = null) {
     if (typeof p == 'number') {
         currentPage.value = p
     }
     loading.value = true
-    getNoticeList(currentPage.value).then(res => {
+    getManagerList(currentPage.value, searchForm.value).then(res => {
+        roles.value = res.roles
         total.value = res.totalCount
-        tableData.value = res.list
+        // 每一个对象状态加载
+        tableData.value = res.list.map(o => {
+            o.statusLoading = false
+            return o
+        })
     }).finally(() => {
         loading.value = false
     })
 }
 getData()
-//新增公告(表单部分)
+//新增管理员(表单部分)
 const formDrawerRef = ref(null)
 const formRef = ref(null)
 const form = ref({
-    title: '',
-    content: '',
+    username: '',
+    password: '',
+    status: 1,
+    role_id: null,
+    avatar: '',
 })
 const rules = ref({
-    title: [
-        { required: true, message: '公告标题不能为空', trigger: 'blur' },
+    username: [
+        { required: true, message: '用户名不能为空', trigger: 'blur' },
     ],
-    content: [
-        { required: true, message: '公告内容不能为空', trigger: 'blur' },
+    password: [
+        { required: true, message: '密码不能为空', trigger: 'blur' },
     ]
 })
 const editId = ref(0)
-const drawerTitle = computed(() => editId.value ? '修改公告' : '新增公告')
+const drawerTitle = computed(() => editId.value ? '修改管理员' : '新增管理员')
 const handleSubmit = () => {
     formRef.value.validate((valid) => {
         if (!valid) return
         formDrawerRef.value.showLoading()
-        const fun = editId.value ? updateNotice(editId.value, form.value) : createNotice(form.value)
+        const fun = editId.value ? updateManager(editId.value, form.value) : createManager(form.value)
 
 
         fun.then(res => {
@@ -71,8 +88,11 @@ function resetForm(row = false) {
 const handleCreate = () => {
     editId.value = 0
     resetForm({
-        title: '',
-        content: '',
+        username: '',
+        password: '',
+        status: 1,
+        role_id: null,
+        avatar: '',
     })
     formDrawerRef.value.open()
 }
@@ -85,16 +105,42 @@ const handleEdit = (row) => {
 //删除公告
 const handleDelete = (id) => {
     loading.value = true
-    deleteNotice(id).then(res => {
+    deleteManager(id).then(res => {
         toast('删除成功')
         getData()
     }).finally(() => {
         loading.value = false
     })
 }
+//更新管理员状态
+const handleStatusChange = (status, row) => {
+    row.statusLoading = true
+    updateManagerStatus(row.id, status).then(res => {
+        toast('状态更新成功')
+        row.status = status
+    }).finally(() => {
+        row.statusLoading = false
+    })
+}
 </script>
 <template>
     <el-card shadow="never" class="border-0">
+        <!-- 搜索 -->
+        <el-form :model="searchForm" label-width="80px" class="mb-2">
+            <el-row :gutter="20">
+                <el-col :span="8" :offset="0"> <el-form-item label="关键词">
+                        <el-input v-model="searchForm.keyword" placeholder="请输入管理员昵称" clearable></el-input>
+                    </el-form-item></el-col>
+                <el-col :span="8" :offset="8"> <el-form-item>
+                        <el-button type="primary" @click="getData">搜索</el-button>
+                        <el-button @click="reset">重置</el-button>
+                    </el-form-item></el-col>
+            </el-row>
+
+
+
+        </el-form>
+
         <!-- 新增/刷新 -->
         <div class="flex justify-between items-center mb-4">
             <el-button type="primary" size="small" text @click="handleCreate">新增</el-button>
@@ -105,20 +151,48 @@ const handleDelete = (id) => {
             </el-tooltip>
         </div>
         <el-table :data="tableData" stripe style="width: 100%" v-loading="loading">
-            <el-table-column prop="title" label="公告标题" />
-            <el-table-column prop="create_time" label="创建时间" width="380" />
+            <el-table-column label="管理员" width="200">
+                <template #default="{ row }">
+                    <div class="flex items-center">
+                        <el-avatar :size="40" :src="row.avatar">
+                            <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png" />
+                        </el-avatar>
+                        <div class="ml-3">
+                            <h6>{{ row.username }}</h6>
+                            <small>ID: {{ row.id }}</small>
+                        </div>
+                    </div>
+
+
+                </template>
+            </el-table-column>
+            <el-table-column label="所属管理员" align="center">
+                <template #default="{ row }">
+                    <el-tag>{{ row.role?.name || '-' }}</el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column label="状态" width="120" align="center">
+                <template #default="{ row }">
+                    <el-switch :model-value="row.status" :active-value="1" :inactive-value="0"
+                        :loading="row.statusLoading" :disabled="row.super == 1"
+                        @change="handleStatusChange($event, row)"></el-switch>
+                </template>
+            </el-table-column>
             <el-table-column label="操作">
                 <template #default="scope">
-                    <el-button size="small" type="primary" @click="handleEdit(scope.row)">
-                        修改
-                    </el-button>
-                    <el-popconfirm title="是否删除该公告？" confirm-button-text="确认" cancel-button-text="取消"
-                        @confirm="handleDelete(scope.row.id)">
-                        <template #reference>
-                            <el-button text type="danger" size="small">删除
-                            </el-button>
-                        </template>
-                    </el-popconfirm>
+                    <small v-if="scope.row.super == 1" class="text-gray-500 text-sm ml-4">暂无操作</small>
+                    <div v-else>
+                        <el-button size="small" type="primary" @click="handleEdit(scope.row)">
+                            修改
+                        </el-button>
+                        <el-popconfirm title="是否删除该管理员？" confirm-button-text="确认" cancel-button-text="取消"
+                            @confirm="handleDelete(scope.row.id)">
+                            <template #reference>
+                                <el-button text type="danger" size="small">删除
+                                </el-button>
+                            </template>
+                        </el-popconfirm>
+                    </div>
 
                 </template>
             </el-table-column>
@@ -128,11 +202,23 @@ const handleDelete = (id) => {
         </div>
         <FormDrawer ref="formDrawerRef" :title="drawerTitle" @submit="handleSubmit">
             <el-form :model="form" ref="formRef" :rules="rules" label-width="80px" :inline="false">
-                <el-form-item label="公告标题" prop="title">
-                    <el-input v-model="form.title" placeholder="请输入标题"></el-input>
+                <el-form-item label="用户名" prop="username">
+                    <el-input v-model="form.username" placeholder="请输入用户名"></el-input>
                 </el-form-item>
-                <el-form-item label="公告内容" prop="content">
-                    <el-input v-model="form.content" placeholder="请输入内容" type="textarea" :rows="5"></el-input>
+                <el-form-item label="密码" prop="password">
+                    <el-input v-model="form.password" placeholder="请输入密码"></el-input>
+                </el-form-item>
+                <el-form-item label="头像" prop="avatar">
+                    <ChooseImage v-model="form.avatar" />
+                </el-form-item>
+                <el-form-item label="所属角色" prop="role_id">
+                    <el-select v-model="form.role_id" placeholder="请选择角色">
+                        <el-option v-for="role in roles" :key="role.id" :label="role.name" :value="role.id" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="状态" prop="status">
+                    <el-switch v-model="form.status" :active-value="1" :inactive-value="0">
+                    </el-switch>
                 </el-form-item>
             </el-form>
         </FormDrawer>

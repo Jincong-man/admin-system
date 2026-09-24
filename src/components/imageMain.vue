@@ -1,6 +1,6 @@
 <script setup>
 import { getImageList, updataImage, deleteImage } from "~/api/image.js";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { showPrompt, toast } from "~/composables/util.js";
 
 import UpLoadFile from "~/components/UpLoadFile.vue";
@@ -20,7 +20,10 @@ function getData(p = null) {
     loading.value = true
     getImageList(image_class_id.value, currentPage.value).then(res => {
         total.value = res.totalCount
-        list.value = res.list
+        list.value = res.list.map(o => {
+            o.checked = false
+            return o
+        })
     }).finally(() => {
         loading.value = false
     })
@@ -51,7 +54,7 @@ const handleDelete = (id) => {
     loading.value = true
     deleteImage([id]).then(res => {
         toast('删除成功')
-        getData()
+        getData()   
     }).finally(() => {
         loading.value = false
     })
@@ -60,7 +63,23 @@ const handleDelete = (id) => {
 const handleUploadSuccess = () => {
     getData(1)
 }
+defineProps({
+    openChoose:{
+        type:Boolean,
+        default:false
+    }
 
+})
+//选择图片
+const emit = defineEmits(['choose'])
+const checkedIamge = computed(() => list.value.filter(o => o.checked))
+const handleChooseChange = (item) => {
+    if (item.checked && checkedIamge.value.length > 1) {
+        item.checked = false
+        return toast('最多只能选择一张图片', 'error')
+    }
+    emit('choose', checkedIamge.value)
+}
 
 defineExpose({
     loadData,
@@ -73,11 +92,12 @@ defineExpose({
         <div class="top p-3">
             <el-row :gutter="10">
                 <el-col v-for="(item, index) in list" :key="index" :span="6" :offset="0">
-                    <el-card shadow="hover" class="relative mb-3" :body-style="{ 'padding': 0 }">
+                    <el-card shadow="hover" class="relative mb-3" :body-style="{ 'padding': 0 }" :class="{'border-blue-400':item.checked}">
                         <el-image :src="item.url" fit="cover" class="w-full h-[150px]" :preview-src-list="[item.url]"
                             show-progress :initial-index="0"></el-image>
                         <div class="image-title">{{ item.name }}</div>
                         <div class="flex justify-center items-center p-2">
+                            <el-checkbox v-if="openChoose" v-model="item.checked" @change="handleChooseChange(item)"></el-checkbox>
                             <el-button type="primary" size="small" text @click='handleEdit(item)'>重命名</el-button>
                             <el-popconfirm title="是否删除该图片？" confirm-button-text="确认" cancel-button-text="取消"
                                 @confirm="handleDelete(item.id)">
