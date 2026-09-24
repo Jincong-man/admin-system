@@ -1,127 +1,45 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { getManagerList, updateManagerStatus, deleteManager, updateManager, createManager } from '~/api/manager'
 import FormDrawer from '~/components/FormDrawer.vue'
 import ChooseImage from '~/components/ChooseImage.vue'
-import { toast } from '~/composables/util.js'
-const searchForm = ref({
-    keyword: ''
-})
-const reset = () => {
-    searchForm.value.keyword = ''
-    getData()
-}
-const tableData = ref([])
-
-const loading = ref(false)
-const currentPage = ref(1)
-const total = ref(0)
-const limit = ref(10)
+import { useInitTable, useInitForm } from '~/composables/useCommon.js'
 const roles = ref([])
-function getData(p = null) {
-    if (typeof p == 'number') {
-        currentPage.value = p
-    }
-    loading.value = true
-    getManagerList(currentPage.value, searchForm.value).then(res => {
-        roles.value = res.roles
-        total.value = res.totalCount
-        // 每一个对象状态加载
-        tableData.value = res.list.map(o => {
-            o.statusLoading = false
-            return o
-        })
-    }).finally(() => {
-        loading.value = false
+const { searchForm, reset, tableData, loading, currentPage, total, limit, getData, handleDelete, handleStatusChange }
+    = useInitTable({
+        searchForm: {
+            keyword: '',
+        },
+        getList: getManagerList,
+        onGetListSuccess: (res) => {
+            roles.value = res.roles
+            total.value = res.totalCount
+            // 每一个对象状态加载
+            tableData.value = res.list.map(o => {
+                o.statusLoading = false
+                return o
+            })
+        },
+        delete: deleteManager,
+        updateStatus: updateManagerStatus,
+
     })
-}
-getData()
-//新增管理员(表单部分)
-const formDrawerRef = ref(null)
-const formRef = ref(null)
-const form = ref({
-    username: '',
-    password: '',
-    status: 1,
-    role_id: null,
-    avatar: '',
-})
-const rules = ref({
-    username: [
-        { required: true, message: '用户名不能为空', trigger: 'blur' },
-    ],
-    password: [
-        { required: true, message: '密码不能为空', trigger: 'blur' },
-    ]
-})
-const editId = ref(0)
-const drawerTitle = computed(() => editId.value ? '修改管理员' : '新增管理员')
-const handleSubmit = () => {
-    formRef.value.validate((valid) => {
-        if (!valid) return
-        formDrawerRef.value.showLoading()
-        const fun = editId.value ? updateManager(editId.value, form.value) : createManager(form.value)
-
-
-        fun.then(res => {
-            toast(drawerTitle.value + '成功')
-            getData(editId.value ? currentPage.value : 1)
-
-            formDrawerRef.value.close()
-        }).finally(() => {
-            formDrawerRef.value.hideLoading()
-        })
-    })
-
-
-}
-//重置表单
-function resetForm(row = false) {
-    if (formRef.value) formRef.value.clearValidate()
-    if (row) {
-        for (const key in form.value) {
-            form.value[key] = row[key]
-        }
-    }
-
-}
-const handleCreate = () => {
-    editId.value = 0
-    resetForm({
+const {
+    formDrawerRef, formRef, form, rules, drawerTitle,
+    handleSubmit, handleCreate, handleEdit
+} = useInitForm({
+    title: '管理员',
+    form: {
         username: '',
         password: '',
         status: 1,
         role_id: null,
         avatar: '',
-    })
-    formDrawerRef.value.open()
-}
-//编辑公告
-const handleEdit = (row) => {
-    editId.value = row.id
-    resetForm(row)
-    formDrawerRef.value.open()
-}
-//删除公告
-const handleDelete = (id) => {
-    loading.value = true
-    deleteManager(id).then(res => {
-        toast('删除成功')
-        getData()
-    }).finally(() => {
-        loading.value = false
-    })
-}
-//更新管理员状态
-const handleStatusChange = (status, row) => {
-    row.statusLoading = true
-    updateManagerStatus(row.id, status).then(res => {
-        toast('状态更新成功')
-        row.status = status
-    }).finally(() => {
-        row.statusLoading = false
-    })
-}
+    },
+    getData,
+    create: createManager,
+    update: updateManager,
+})
 </script>
 <template>
     <el-card shadow="never" class="border-0">
